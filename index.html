@@ -747,11 +747,11 @@ function analyzeNewOil(){
   const params=[
     {name:'BDV',val:bdv!=null?`${bdv} kV`:null,cls:bdv!=null?clsBDVn(bdv):null,limit:'≥60 kV'},
     {name:'Tan Delta',val:tand!=null?`${tand}`:null,cls:tand!=null?clsTn(tand):null,limit:'≤0.002'},
-    {name:'Resistivity',val:res!=null?`${res} GΩ·m`:null,cls:res!=null?clsRn(res):null,limit:'≥35 GΩ·m'},
+    {name:'Resistivity',val:res!=null?`${res} GΩ·m`:null,cls:res!=null?clsRn(res):null,limit:'≥35 GOhm.m'},
     {name:'Acidity',val:acid!=null?`${acid} mgKOH/g`:null,cls:acid!=null?clsAn(acid):null,limit:'≤0.03 mgKOH/g'},
     {name:'Water',val:water!=null?`${water} ppm`:null,cls:water!=null?clsWn(water):null,limit:'≤30 ppm'},
     {name:'IFT at 25°C',val:ift!=null?`${ift} mN/m`:null,cls:ift!=null?clsIn(ift):null,limit:'≥40 mN/m'},
-    {name:'Flash Point',val:fp!=null?`${fp} °C`:null,cls:fp!=null?clsFn(fp):null,limit:'≥140°C'},
+    {name:'Flash Point',val:fp!=null?`${fp} °C`:null,cls:fp!=null?clsFn(fp):null,limit:'>=140°C'},
     {name:'Pour Point',val:pour!=null?`${pour}°C`:null,cls:pour!=null?clsPn(pour):null,limit:'≤−6°C'},
     {name:'Viscosity',val:visc!=null?`${visc} cSt`:null,cls:visc!=null?clsVn(visc):null,limit:'≤12 cSt'},
     {name:'Appearance',val:appear||null,cls:appear?clsAp(appear):null,limit:'Clear and bright'},
