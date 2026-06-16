@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -944,7 +945,7 @@ function _doGeneratePDF(){
       ]),
       styles:{fontSize:7.5,cellPadding:2.5,valign:'middle'},
       headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold',fontSize:7.5},
-      columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:36},2:{cellWidth:20},3:{cellWidth:16,halign:'center'},4:{cellWidth:14,halign:'center'},5:{cellWidth:16,halign:'center'},6:{cellWidth:24,halign:'center',fontStyle:'bold'},7:{cellWidth:22,halign:'center'}},
+      columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:34},2:{cellWidth:20},3:{cellWidth:16,halign:'center'},4:{cellWidth:18,halign:'center'},5:{cellWidth:16,halign:'center'},6:{cellWidth:24,halign:'center',fontStyle:'bold'},7:{cellWidth:22,halign:'center'}},
       alternateRowStyles:{fillColor:LIGHT},
       didDrawCell:(d)=>{
         if(d.column.index===7&&d.section==='body'){
@@ -981,7 +982,7 @@ function _doGeneratePDF(){
     fnt('bold',7.5);doc.text('Rogers Code:',M+55,y+11);fnt('normal',8)
     doc.text(d.rogers?`${d.rogers.r1??'-'},${d.rogers.r2??'-'},${d.rogers.r3??'-'}`:'—,—,—',M+85,y+11)
     fnt('bold',8);doc.text('Fault Type:',M+3,y+17);fnt('normal',8);doc.text(d.fault,M+26,y+17,{maxWidth:95})
-    fnt('bold',7.5);doc.text('Severity:',M+130,y+17);fnt('bold',9);doc.text(d.sev,M+148,y+17);y+=25
+    fnt('bold',7.5);doc.text('Severity:',M+130,y+17);fnt('bold',9);doc.text(d.sev,M+148,y+17);y+=28
     if(d.ps){sf([254,243,199]);doc.rect(M,y,CW,9,'F');fnt('bold',8);st([146,64,14]);doc.text('WARNING: Paper thermal stress — CO2/CO > 11 AND CO > 100 ppm. All hydrocarbons BDL. Pure cellulose degradation pattern.',M+3,y+6,{maxWidth:CW-6});y+=12}
     sf(dc.bg);doc.rect(M,y,CW,8,'F');fnt('bold',7.5);st(dc.fg);doc.text(`DGA Action: ${d.action}`,M+3,y+5.5);y+=12
   }
