@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer Oil Analysis App v11</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:230px;min-width:230px;background:#0f172a;border-right:1px solid #1e293b;padding:1rem 0;display:flex;flex-direction:column;gap:2px;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:10}
+.sidebar-title{font-size:10px;font-weight:600;color:#64748b;padding:.5rem 1rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;padding:10px 1rem;cursor:pointer;font-size:13px;color:#94a3b8;border-left:3px solid transparent;transition:all .15s;justify-content:space-between}
+.nav-item:hover{background:#1e293b;color:#e2e8f0}
+.nav-item.active{background:#1e293b;color:#e2e8f0;border-left:3px solid #1D9E75;font-weight:500}
+.nav-item.summary-nav{border-top:1px solid #1e293b;margin-top:8px;padding-top:14px}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:#334155;flex-shrink:0;transition:background .3s}
+.nav-dot.done{background:#1D9E75}
+.main{flex:1;margin-left:230px;padding:2rem;max-width:100%;overflow-x:hidden}
+.panel-title{font-size:20px;font-weight:700;margin-bottom:4px;color:#f1f5f9}
+.panel-sub{font-size:13px;color:#64748b;margin-bottom:1.5rem}
+.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:600;margin-bottom:1rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;color:#94a3b8;font-weight:500}
+.field-row{display:flex;align-items:center}
+.field input,.field select{flex:1;padding:8px 10px;font-size:13px;border:1px solid #334155;border-radius:7px;background:#0f172a;color:#e2e8f0;outline:none;transition:border-color .15s;min-width:0}
+.field input::placeholder{color:#475569}
+.field input:focus,.field select:focus{border-color:#1D9E75;box-shadow:0 0 0 3px rgba(29,158,117,.15)}
+.field input.error{border-color:#991b1b;box-shadow:0 0 0 3px rgba(153,27,27,.2)}
+.field input.bdl-active{background:#0d2318;color:#4ade80;border-color:#166534}
+.field select option{background:#1e293b;color:#e2e8f0}
+.unit{font-size:11px;color:#64748b;padding:8px 8px 8px 6px;border:1px solid #334155;border-left:none;border-radius:0 7px 7px 0;background:#1e293b;white-space:nowrap;flex-shrink:0}
+.field input.with-unit{border-radius:7px 0 0 7px}
+.bdl-btn{padding:7px 8px;font-size:11px;border:1px solid #334155;border-left:none;border-radius:0 7px 7px 0;background:#1e293b;color:#64748b;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.bdl-btn:hover{background:#334155;color:#e2e8f0}
+.bdl-btn.active{background:#0d2318;color:#4ade80;border-color:#166534}
+.bdl-badge{font-size:10px;font-weight:600;color:#4ade80;background:#0d2318;border:1px solid #166534;border-radius:4px;padding:1px 5px;margin-left:4px;display:none}
+.bdl-badge.show{display:inline}
+.btn-row{display:flex;justify-content:flex-end;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.btn{padding:8px 18px;font-size:13px;border-radius:7px;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:500;transition:all .15s}
+.btn:hover{background:#334155;color:#e2e8f0}
+.btn-primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.btn-primary:hover{background:#15875f;border-color:#15875f}
+.btn-report{background:#1D9E75;color:#fff;border-color:#1D9E75;display:flex;align-items:center;gap:8px;padding:10px 22px;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer}
+.btn-report:hover{background:#15875f}
+.btn-report:disabled{background:#334155;border-color:#334155;color:#64748b;cursor:not-allowed;opacity:.6}
+.result-card{border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;border:1px solid}
+.result-card.good,.result-card.normal,.result-card.pass{background:#052e16;border-color:#166534}
+.result-card.fair,.result-card.moderate,.result-card.marginal{background:#1c1400;border-color:#854d0e}
+.result-card.poor,.result-card.critical,.result-card.severe,.result-card.fail{background:#1c0a0a;border-color:#991b1b}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.badge.good,.badge.normal,.badge.pass{background:#14532d;color:#4ade80}
+.badge.fair,.badge.moderate,.badge.marginal{background:#422006;color:#fbbf24}
+.badge.poor,.badge.critical,.badge.severe,.badge.fail{background:#450a0a;color:#f87171}
+.badge.na{background:#1e293b;color:#64748b}
+.param-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0f172a;border-radius:7px;font-size:13px;gap:8px;margin-bottom:4px;border:1px solid #1e293b}
+.action-box{display:flex;align-items:flex-start;gap:8px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;font-weight:500;border:1px solid}
+.action-box.good,.action-box.normal,.action-box.pass{background:#052e16;color:#4ade80;border-color:#166534}
+.action-box.fair,.action-box.moderate,.action-box.marginal{background:#1c1400;color:#fbbf24;border-color:#854d0e}
+.action-box.poor,.action-box.critical,.action-box.severe,.action-box.fail{background:#1c0a0a;color:#f87171;border-color:#991b1b}
+.alert-warn{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-top:8px;background:#1c1400;color:#fbbf24;border:1px solid #854d0e}
+.alert-danger{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-top:8px;background:#1c0a0a;color:#f87171;border:1px solid #991b1b}
+.alert-error{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:8px;background:#1c0a0a;color:#f87171;border:1px solid #991b1b;display:none}
+.sep{height:1px;background:#334155;margin:12px 0}
+.ratio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ratio-box{background:#0f172a;padding:10px;border-radius:8px;border:1px solid #334155}
+.ratio-label{font-size:11px;color:#64748b;margin-bottom:2px}
+.ratio-val{font-size:15px;font-weight:600;color:#e2e8f0}
+.tdcg-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px}
+.tdcg-step{padding:7px 8px;border-radius:7px;text-align:center;font-size:11px;font-weight:600;opacity:.2;transition:opacity .2s}
+.tdcg-step.active{opacity:1}
+.tdcg-c1{background:#052e16;color:#4ade80}
+.tdcg-c2{background:#1c1400;color:#fbbf24}
+.tdcg-c3{background:#1c0f00;color:#fb923c}
+.tdcg-c4{background:#1c0a0a;color:#f87171}
+.flagged-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;font-size:12px;margin-bottom:4px;background:#0f172a;border:1px solid #334155}
+.overall-verdict{border-radius:12px;padding:1.75rem;margin-bottom:1rem;border:1px solid;text-align:center}
+.overall-verdict.normal,.overall-verdict.good,.overall-verdict.pass{background:#052e16;border-color:#166534}
+.overall-verdict.moderate,.overall-verdict.fair,.overall-verdict.marginal{background:#1c1400;border-color:#854d0e}
+.overall-verdict.critical,.overall-verdict.poor,.overall-verdict.severe,.overall-verdict.fail{background:#1c0a0a;border-color:#991b1b}
+.verdict-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-bottom:8px}
+.verdict-text{font-size:22px;font-weight:700;margin-bottom:6px}
+.verdict-sub{font-size:14px;opacity:.75}
+.summary-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:6px;border:1px solid #334155;background:#0f172a}
+.summary-row .s-label{color:#64748b;font-size:12px;margin-bottom:2px}
+.summary-row .s-value{font-weight:600;font-size:13px;color:#e2e8f0}
+.priority-item{display:flex;gap:12px;padding:12px 14px;border-radius:8px;margin-bottom:6px;font-size:13px;border:1px solid}
+.priority-item.critical-item,.priority-item.severe-item{background:#1c0a0a;border-color:#991b1b;color:#f87171}
+.priority-item.moderate-item,.priority-item.fair-item{background:#1c1400;border-color:#854d0e;color:#fbbf24}
+.priority-item.normal-item,.priority-item.good-item{background:#052e16;border-color:#166534;color:#4ade80}
+.priority-num{font-weight:800;min-width:22px;font-size:15px}
+.not-run{color:#475569;font-style:italic}
+.report-section{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.5rem;margin-top:1rem}
+.report-section h3{font-size:15px;font-weight:600;margin-bottom:4px;color:#f1f5f9}
+.report-section p{font-size:13px;color:#64748b;margin-bottom:1rem}
+.no-panels-warning{background:#1c1400;border:1px solid #854d0e;border-radius:8px;padding:1rem 1.25rem;color:#fbbf24;font-size:13px;margin-bottom:1rem}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mark-all-bdl{font-size:11px;color:#64748b;cursor:pointer;text-decoration:underline;margin-bottom:8px;display:inline-block}
+.mark-all-bdl:hover{color:#4ade80}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="sidebar-title">Transformer Oil Analysis</div>
+  <div class="nav-item active" onclick="showPanel('sample')" id="nav-sample"><div class="nav-left"><span>📋</span> Sample ID</div><div class="nav-dot" id="dot-sample"></div></div>
+  <div class="nav-item" onclick="showPanel('isoil')" id="nav-isoil"><div class="nav-left"><span>💧</span> In-Service Oil</div><div class="nav-dot" id="dot-isoil"></div></div>
+  <div class="nav-item" onclick="showPanel('dga')" id="nav-dga"><div class="nav-left"><span>⚗️</span> DGA Analysis</div><div class="nav-dot" id="dot-dga"></div></div>
+  <div class="nav-item" onclick="showPanel('furanic')" id="nav-furanic"><div class="nav-left"><span>🧪</span> Furanic Analysis</div><div class="nav-dot" id="dot-furanic"></div></div>
+  <div class="nav-item" onclick="showPanel('optional')" id="nav-optional"><div class="nav-left"><span>🔬</span> Optional Tests</div><div class="nav-dot" id="dot-optional"></div></div>
+  <div class="nav-item" onclick="showPanel('newoil')" id="nav-newoil"><div class="nav-left"><span>🫙</span> New Oil</div><div class="nav-dot" id="dot-newoil"></div></div>
+  <div class="nav-item summary-nav" onclick="showPanel('summary')" id="nav-summary"><div class="nav-left"><span>📊</span> Summary & Report</div></div>
+</div>
+<div class="main" id="main-content"></div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────
+const STATE={sample:null,is1866:null,dga:null,tdcg:null,furanic:null,optional:null,newoil:null}
+
+function saveState(){try{localStorage.setItem('toa_v11',JSON.stringify(STATE))}catch(e){}}
+function loadState(){
+  try{
+    const s=localStorage.getItem('toa_v11')
+    if(s){const p=JSON.parse(s);Object.assign(STATE,p)}
+  }catch(e){}
+}
+function updateDots(){
+  const map={sample:STATE.sample,isoil:STATE.is1866,dga:STATE.dga,furanic:STATE.furanic,optional:STATE.optional,newoil:STATE.newoil}
+  for(const[k,v] of Object.entries(map)){const d=document.getElementById('dot-'+k);if(d)d.classList.toggle('done',!!v)}
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function gv(id){return(document.getElementById(id)?.value||'').trim()}
+function gs(id){return gv(id).toLowerCase()}
+function san(id){const v=parseFloat(gv(id));return isNaN(v)||v<0?null:v}
+function sanNeg(id){const v=parseFloat(gv(id));return isNaN(v)?null:v}
+function badge(c,label){
+  const l=label||c
+  if(!c)return''
+  const cl=c.toLowerCase()
+  if(cl==='—'||cl==='nt')return`<span class="badge na">—</span>`
+  return`<span class="badge ${cl}">${l}</span>`
+}
+function actionBox(cls,text){return`<div class="action-box ${cls.toLowerCase()}">⟶ ${text}</div>`}
+
+// ── NAVIGATION ───────────────────────────────────────────────
+function showPanel(name,force=false){
+  if(!force&&name!=='summary'){
+    const inputs=[...document.querySelectorAll('.main input:not(.bdl-active), .main select')]
+    const hasUnsaved=inputs.some(el=>el.value&&el.value.trim()!=='')
+    const resultEl=document.getElementById('is-result')||document.getElementById('dga-result')||document.getElementById('furanic-result')||document.getElementById('optional-result')||document.getElementById('newoil-result')
+    if(hasUnsaved&&!resultEl?.innerHTML){
+      if(!confirm('You have unsaved values.\nClick Analyze first to save, or OK to leave and lose them.'))return
+    }
+  }
+  if(name==='summary'){buildSummary();return}
+  document.getElementById('main-content').innerHTML=panels[name]
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'))
+  document.getElementById('nav-'+name)?.classList.add('active')
+}
+
+// ── PANEL HTML ───────────────────────────────────────────────
+function fld(l,id,ph,t='text'){return`<div class="field"><label>${l}</label><input type="${t}" id="${id}" placeholder="${ph}" autocomplete="off"></div>`}
+function fldU(l,id,ph,u){return`<div class="field"><label>${l}</label><div class="field-row"><input type="number" min="0" step="any" id="${id}" placeholder="${ph}" class="with-unit" autocomplete="off"><span class="unit">${u}</span></div></div>`}
+function fldUbdl(l,id,ph,u){return`<div class="field"><label>${l}</label><div class="field-row"><input type="number" min="0" step="any" id="${id}" placeholder="${ph}" class="with-unit" autocomplete="off"><span class="unit" style="border-radius:0;border-right:none">${u}</span><button class="bdl-btn" id="bdl-${id}" onclick="toggleBDL('${id}')" type="button">BDL</button></div></div>`}
+function fldUbdl(l,id,ph,u){return`<div class="field"><label>${l}</label><div class="field-row"><input type="number" min="0" step="any" id="${id}" placeholder="${ph}" class="with-unit" autocomplete="off" style="border-radius:7px 0 0 7px"><span class="unit" style="border-radius:0;border-right:none;border-left:none">${u}</span><button type="button" id="bdl-${id}" onclick="toggleBDL('${id}')" style="padding:7px 8px;font-size:11px;border:1px solid #334155;border-radius:0 7px 7px 0;background:#1e293b;color:#64748b;cursor:pointer;white-space:nowrap;flex-shrink:0">BDL</button></div></div>`}
+function fldS(l,id,opts){return`<div class="field"><label>${l}</label><select id="${id}">${opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('')}</select></div>`}
+
+const panels={
+  sample:`
+    <div class="panel-title">Sample Identification</div>
+    <div class="panel-sub">Enter basic sample and equipment details</div>
+    <div class="card"><div class="card-title">Sample Information</div>
+    <div class="grid-2">
+      ${fld('Sample ID','sample-id','e.g. TRF-2025-001')}
+      ${fld('Date of Testing','date-test','','date')}
+      ${fld('Date of Receipt','date-receipt','','date')}
+      ${fld('Customer Name','customer-name','Customer or organisation name')}
+      ${fld('Location / Site','location','Substation or site name')}
+    </div></div>
+    <div class="card"><div class="card-title">Equipment Details</div>
+    <div class="grid-2">
+      ${fld('Transformer Make','t-make','e.g. BHEL, ABB, Siemens')}
+      ${fld('Serial Number','t-serial','e.g. SR-00001')}
+      ${fld('Tag Number','t-tag','e.g. TR-1')}
+      ${fld('Voltage Rating','t-voltage','e.g. 132/11 kV')}
+      ${fld('MVA Rating','t-mva','e.g. 30 MVA')}
+      ${fld('Sampling Point','t-samppt','e.g. Bottom, Top')}
+    </div></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearSample()">Clear</button>
+      <button class="btn btn-primary" onclick="saveSample()">Save & Continue</button>
+    </div>`,
+
+  isoil:`
+    <div class="panel-title">In-Service Oil Testing — IS 1866</div>
+    <div class="panel-sub">Leave any field blank to mark it as Not Tested — blank fields are excluded from analysis</div>
+    <div class="card"><div class="card-title">Primary Tests</div>
+    <div class="grid-3">
+      ${fldU('BDV','bdv','e.g. 49','kV')}
+      ${fldU('Water Content','water','e.g. 28','ppm')}
+      ${fldU('Acidity','acidity','e.g. 0.05','mgKOH/g')}
+      ${fld('Tan Delta at 90°C','tanDelta','e.g. 0.095')}
+      ${fldU('Resistivity at 90°C','resistivity','e.g. 1.7','GΩ·m')}
+    </div></div>
+    <div class="card"><div class="card-title">Additional Parameters</div>
+    <div class="grid-3">
+      ${fldU('IFT at 27°C','ift','e.g. 21','mN/m')}
+      ${fldU('Flash Point','flashPoint','e.g. 153','°C')}
+      ${fld('Sediment & Sludge','sediment','None / Trace / Present')}
+      ${fld('Colour','colour','e.g. 1.5')}
+      ${fldU('Density at 29.5°C','density','e.g. 0.89','g/ml')}
+      ${fldU('Viscosity at 40°C','viscosity','e.g. 12','cSt')}
+    </div></div>
+    <div id="is-result"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearIS()">Clear</button>
+      <button class="btn btn-primary" onclick="analyzeIS()">Analyze</button>
+    </div>`,
+
+  dga:`
+    <div class="panel-title">Dissolved Gas Analysis — IEC 60599</div>
+    <div class="panel-sub">Enter a value OR mark as BDL for every gas before analyzing</div>
+    <div class="card"><div class="card-title">Fault Gases</div>
+    <span class="mark-all-bdl" onclick="markAllBDL()">Mark all remaining fields as BDL</span>
+    <div class="grid-3">
+      ${fldUbdl('Hydrogen (H₂)','h2','ppm','ppm')}
+      ${fldUbdl('Methane (CH₄)','ch4','ppm','ppm')}
+      ${fldUbdl('Ethane (C₂H₆)','c2h6','ppm','ppm')}
+      ${fldUbdl('Ethylene (C₂H₄)','c2h4','ppm','ppm')}
+      ${fldUbdl('Acetylene (C₂H₂)','c2h2','ppm','ppm')}
+    </div></div>
+    <div class="card"><div class="card-title">Other Gases</div>
+    <div class="grid-3">
+      ${fldUbdl('Carbon Monoxide (CO)','co','ppm','ppm')}
+      ${fldUbdl('Carbon Dioxide (CO₂)','co2','ppm','ppm')}
+      ${fldUbdl('Oxygen (O₂)','o2','ppm','ppm')}
+      ${fldUbdl('Nitrogen (N₂)','n2','ppm','ppm')}
+    </div></div>
+    <div id="dga-error" class="alert-error"></div>
+    <div id="tdcg-result"></div>
+    <div id="dga-result"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearDGA()">Clear</button>
+      <button class="btn btn-primary" onclick="runDGA()">Analyze</button>
+    </div>`,
+
+  furanic:`
+    <div class="panel-title">Furanic Analysis — IEC 61198</div>
+    <div class="panel-sub">Leave any field blank to mark as Not Tested — blank fields excluded from total</div>
+    <div class="card"><div class="card-title">Furanic Compounds</div>
+    <div class="grid-2">
+      ${fldU('2-Furfuraldehyde (2-FAL)','f2fal','e.g. 2.36','mg/kg')}
+      ${fldU('5-HMF','f5hmf','e.g. 0.17','mg/kg')}
+      ${fldU('2-Acetylfuran (2-ACF)','f2acf','e.g. 0.05','mg/kg')}
+      ${fldU('5-Methyl-2-furfural (5-MEF)','f5mef','e.g. 0.08','mg/kg')}
+      ${fldU('2-Furfuryl alcohol (2-FOL)','f2fol','e.g. 0.02','mg/kg')}
+    </div></div>
+    <div id="furanic-result"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearFuranic()">Clear</button>
+      <button class="btn btn-primary" onclick="runFuranic()">Analyze</button>
+    </div>`,
+
+  optional:`
+    <div class="panel-title">Optional Tests</div>
+    <div class="panel-sub">Leave all fields in a section blank to exclude it from analysis</div>
+    <div class="card"><div class="card-title">Particle Count — ISO 4406</div>
+    <div class="grid-3">
+      ${fldU('Particles >4 μm','p4','e.g. 15000','/100ml')}
+      ${fldU('Particles >6 μm','p6','e.g. 5000','/100ml')}
+      ${fldU('Particles >14 μm','p14','e.g. 800','/100ml')}
+      ${fldU('Particles >21 μm','p21','e.g. 150','/100ml')}
+      ${fldU('Particles >38 μm','p38','e.g. 25','/100ml')}
+      ${fldU('Particles >70 μm','p70','e.g. 5','/100ml')}
+    </div></div>
+    <div class="card"><div class="card-title">Corrosive Sulfur — IEC 62535</div>
+    <div class="grid-2">
+      ${fldU('DBDS Content','dbds','e.g. 12','mg/kg')}
+      ${fldS('Copper Mirror Test','mirror',[{v:'',t:'Not tested'},{v:'pass',t:'Pass'},{v:'fail',t:'Fail'}])}
+    </div></div>
+    <div class="card"><div class="card-title">PCB Content</div>
+    <div class="grid-2">
+      ${fldU('Total PCB Content','pcb','e.g. 0','mg/kg')}
+      ${fldU('Detection Limit','pcb-lim','e.g. 2','mg/kg')}
+    </div></div>
+    <div id="optional-result"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearOptional()">Clear</button>
+      <button class="btn btn-primary" onclick="runOptional()">Analyze</button>
+    </div>`,
+
+  newoil:`
+    <div class="panel-title">New Oil Testing — IS 335</div>
+    <div class="panel-sub">Acceptance criteria for new transformer insulating oil before commissioning</div>
+    <div class="card"><div class="card-title">Electrical Properties</div>
+    <div class="grid-3">
+      ${fldU('BDV (after filtration)','n-bdv','e.g. 78','kV')}
+      ${fld('Tan Delta at 90°C','n-tand','e.g. 0.0005')}
+      ${fldU('Resistivity at 90°C','n-res','e.g. 46','GΩ·m')}
+    </div></div>
+    <div class="card"><div class="card-title">Chemical & Physical Properties</div>
+    <div class="grid-3">
+      ${fldU('Acidity','n-acid','e.g. 0.01','mgKOH/g')}
+      ${fldU('Water Content','n-water','e.g. 8','ppm')}
+      ${fldU('IFT at 25°C','n-ift','e.g. 46','mN/m')}
+      ${fldU('Flash Point','n-fp','e.g. 145','°C')}
+      ${fld('Pour Point','n-pour','e.g. -9 (negative for below zero)')}
+      ${fldU('Viscosity at 40°C','n-visc','e.g. 10','cSt')}
+      ${fld('Appearance','n-appear','Clear and bright / Hazy / Cloudy')}
+    </div></div>
+    <div id="newoil-result"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="clearNewOil()">Clear</button>
+      <button class="btn btn-primary" onclick="analyzeNewOil()">Analyze</button>
+    </div>`
+}
+
+// ── BDL LOGIC ────────────────────────────────────────────────
+const BDL_STATE={}
+const DGA_FIELDS=['h2','ch4','c2h6','c2h4','c2h2','co','co2','o2','n2']
+
+function toggleBDL(id){
+  const input=document.getElementById(id)
+  const btn=document.getElementById('bdl-'+id)
+  if(!input||!btn)return
+  BDL_STATE[id]=!BDL_STATE[id]
+  if(BDL_STATE[id]){
+    input.value=''
+    input.disabled=true
+    input.classList.add('bdl-active')
+    btn.classList.add('active')
+    btn.textContent='✓ BDL'
+  }else{
+    input.disabled=false
+    input.classList.remove('bdl-active')
+    btn.classList.remove('active')
+    btn.textContent='BDL'
+    input.focus()
+  }
+  // Clear error state
+  document.getElementById('dga-error').style.display='none'
+  input.classList.remove('error')
+}
+
+function markAllBDL(){
+  DGA_FIELDS.forEach(id=>{
+    if(!BDL_STATE[id]&&!gv(id)){toggleBDL(id)}
+  })
+}
+
+function getDGAValue(id){
+  if(BDL_STATE[id])return{val:0,bdl:true}
+  const v=san(id)
+  return{val:v,bdl:false}
+}
+
+// ── SAMPLE ───────────────────────────────────────────────────
+function saveSample(){
+  STATE.sample={
+    id:gv('sample-id'),testDate:gv('date-test'),receiptDate:gv('date-receipt'),
+    customer:gv('customer-name'),location:gv('location'),
+    make:gv('t-make'),serial:gv('t-serial'),tag:gv('t-tag'),
+    voltage:gv('t-voltage'),mva:gv('t-mva'),samplingPt:gv('t-samppt')
+  }
+  saveState();updateDots()
+  alert('Sample info saved.')
+}
+function clearSample(){
+  ['sample-id','date-test','date-receipt','customer-name','location','t-make','t-serial','t-tag','t-voltage','t-mva','t-samppt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  STATE.sample=null;saveState();updateDots()
+}
+
+// ── IS 1866 ──────────────────────────────────────────────────
+const IS_PARAM_ACTIONS={
+  BDV:{Fair:'Increase monitoring frequency',Poor:'Schedule oil filtration or replacement'},
+  Water:{Fair:'Check moisture source, monitor',Poor:'Vacuum dehydration immediately'},
+  Acidity:{Fair:'Monitor trend closely',Poor:'Reclaim or replace oil'},
+  TanDelta:{Fair:'Filtration recommended',Poor:'Replace oil'},
+  Resistivity:{Fair:'Monitor',Poor:'Filtration'},
+  IFT:{Fair:'Monitor for oxidation products',Poor:'Reclamation'},
+  FlashPoint:{Poor:'Replace immediately — safety risk'},
+  Sediment:{Fair:'Monitor trend',Poor:'Recondition oil'}
+}
+const IS_OVERALL_ACTIONS={Good:'Continue normal operation',Fair:'Increase monitoring — schedule assessment within 6 months',Poor:'Immediate action required — reclaim, filter, or replace oil'}
+
+function clsBdv(v){return v>=50?'Good':v>=40?'Fair':'Poor'}
+function clsWater(v){return v<20?'Good':v<=30?'Fair':'Poor'}
+function clsAcid(v){return v<0.10?'Good':v<=0.20?'Fair':'Poor'}
+function clsTan(v){return v<0.10?'Good':v<=0.50?'Fair':'Poor'}
+function clsRes(v){return v>3?'Good':v>=0.2?'Fair':'Poor'}
+function clsIft(v){return v>25?'Good':v>=20?'Fair':'Poor'}
+// FIXED: Flash Point is binary — >140 Good, ≤140 Poor. No Fair.
+function clsFp(v){return v>140?'Good':'Poor'}
+function clsSed(s){if(!s||['none','nil',''].includes(s))return null;if(s==='trace')return 'Fair';if(s==='present')return 'Poor';return null}
+function overallIS(classes){
+  const valid=classes.filter(c=>c&&c!=='NT')
+  if(valid.length===0)return null
+  if(valid.includes('Poor'))return 'Poor'
+  if(valid.includes('Fair'))return 'Fair'
+  return 'Good'
+}
+
+function analyzeIS(){
+  const bdv=san('bdv'),water=san('water'),acidity=san('acidity')
+  const tanDeltaRaw=gv('tanDelta'),tanDelta=tanDeltaRaw?parseFloat(tanDeltaRaw):null
+  const resistivity=san('resistivity'),ift=san('ift'),flashPoint=san('flashPoint')
+  const sedRaw=gs('sediment'),sediment=sedRaw?clsSed(sedRaw):null
+  const fpVal=san('flashPoint')
+
+  const params=[
+    {name:'BDV',val:bdv!=null?`${bdv} kV`:null,cls:bdv!=null?clsBdv(bdv):null,key:'BDV',spec:'>50 | 40–50 | <40',raw:bdv},
+    {name:'Water Content',val:water!=null?`${water} ppm`:null,cls:water!=null?clsWater(water):null,key:'Water',spec:'<20 | 20–30 | >30',raw:water},
+    {name:'Acidity',val:acidity!=null?`${acidity} mgKOH/g`:null,cls:acidity!=null?clsAcid(acidity):null,key:'Acidity',spec:'<0.10 | 0.10–0.20 | >0.20',raw:acidity},
+    {name:'Tan Delta at 90°C',val:tanDelta!=null?`${tanDelta}`:null,cls:tanDelta!=null?clsTan(tanDelta):null,key:'TanDelta',spec:'<0.10 | 0.10–0.50 | >0.50',raw:tanDelta},
+    {name:'Resistivity at 90°C',val:resistivity!=null?`${resistivity} GΩ·m`:null,cls:resistivity!=null?clsRes(resistivity):null,key:'Resistivity',spec:'>3 | 0.2–3 | <0.2',raw:resistivity},
+    {name:'IFT at 27°C',val:ift!=null?`${ift} mN/m`:null,cls:ift!=null?clsIft(ift):null,key:'IFT',spec:'>25 | 20–25 | <20',raw:ift},
+    {name:'Flash Point',val:fpVal!=null?`${fpVal} °C`:null,cls:fpVal!=null?clsFp(fpVal):null,key:'FlashPoint',spec:'>140 | — | ≤140',raw:fpVal},
+    {name:'Sediment',val:sedRaw||null,cls:sediment,key:'Sediment',spec:'None | Trace | Present',raw:sedRaw},
+  ]
+
+  const testedParams=params.filter(p=>p.cls!==null)
+  const overall=overallIS(testedParams.map(p=>p.cls))
+  const cls=(overall||'normal').toLowerCase()
+
+  STATE.is1866={overall,cls,params,testedParams,action:overall?IS_OVERALL_ACTIONS[overall]:null,flashPointVal:fpVal,acidity}
+  saveState();updateDots()
+
+  if(testedParams.length===0){
+    document.getElementById('is-result').innerHTML=`<div class="alert-warn">No values entered. Enter at least one parameter value to run analysis.</div>`
+    return
+  }
+
+  const flagged=testedParams.filter(p=>p.cls==='Poor'||p.cls==='Fair')
+  const flaggedHTML=flagged.length>0?`<div class="sep"></div><div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px">Flagged Parameters</div>${flagged.map(p=>`<div class="flagged-row"><span>${p.name} (${p.val})</span><span style="display:flex;align-items:center;gap:8px">${badge(p.cls)}<span style="font-size:11px;color:#64748b">${IS_PARAM_ACTIONS[p.key]?.[p.cls]||'—'}</span></span></div>`).join('')}`:''
+
+  const notTested=params.filter(p=>p.cls===null)
+  const ntHTML=notTested.length>0?`<div style="font-size:11px;color:#475569;margin-top:8px">Not tested: ${notTested.map(p=>p.name).join(', ')}</div>`:''
+
+  document.getElementById('is-result').innerHTML=`
+    <div class="result-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600">Overall Oil Condition</span>${badge(overall)}
+      </div>
+      <div class="grid-2">
+        ${params.map(p=>`<div class="param-row"><span>${p.name}${p.val?` (${p.val})`:''}</span>${p.cls?badge(p.cls):`<span style="color:#475569;font-size:11px">Not tested</span>`}</div>`).join('')}
+      </div>
+      ${flaggedHTML}
+      ${ntHTML}
+      ${overall?actionBox(cls,IS_OVERALL_ACTIONS[overall]):''}
+    </div>`
+}
+
+function clearIS(){
+  ['bdv','water','acidity','tanDelta','resistivity','ift','flashPoint','sediment','colour','density','viscosity'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  document.getElementById('is-result').innerHTML=''
+  STATE.is1866=null;saveState();updateDots()
+}
+
+// ── DGA ──────────────────────────────────────────────────────
+const DGA_FAULT_ACTIONS={
+  'Normal':'No action — continue routine DGA sampling',
+  'Partial Discharge (PD)':'Increase DGA monitoring frequency',
+  'Low Energy Discharge (D1)':'Schedule inspection — sparking with carbonization detected',
+  'High Energy Discharge (D2)':'Immediate inspection required — power arc detected',
+  'Thermal Fault T1 <300°C':'Investigate cooling and load — schedule inspection',
+  'Thermal Fault T2 300–700°C':'Schedule inspection and load reduction',
+  'Thermal Fault T3 >700°C':'Immediate action required — severe overheating detected',
+  'Thermal Fault — Paper Insulation':'Verify with furanic analysis — monitor CO/CO2 trend closely',
+  'Unclassified — Manual Review Required':'Manual review required — consult specialist'
+}
+const TDCG_ACTIONS={1:'Continue routine sampling',2:'Increase sampling frequency — monitor closely',3:'Investigate fault source — consider taking offline',4:'Immediate action required — remove from service'}
+function classifyTDCG(t){if(t<720)return{cond:1,label:'Normal',sev:'normal'};if(t<1920)return{cond:2,label:'Warning',sev:'moderate'};if(t<4630)return{cond:3,label:'High — Investigate',sev:'severe'};return{cond:4,label:'Critical',sev:'critical'}}
+
+function renderTDCG(tdcg){
+  const t=classifyTDCG(tdcg)
+  STATE.tdcg={tdcg,cond:t.cond,label:t.label,sev:t.sev,action:TDCG_ACTIONS[t.cond]}
+  const steps=[{c:1,l:'C1',r:'<720',cls:'tdcg-c1'},{c:2,l:'C2',r:'720–1920',cls:'tdcg-c2'},{c:3,l:'C3',r:'1920–4630',cls:'tdcg-c3'},{c:4,l:'C4',r:'>4630',cls:'tdcg-c4'}]
+  document.getElementById('tdcg-result').innerHTML=`
+    <div class="result-card ${t.sev}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:600">TDCG Condition — IEC 60599</span>
+        <span class="badge ${t.sev}">Condition ${t.cond}</span>
+      </div>
+      <div class="grid-2">
+        <div class="param-row"><span>TDCG</span><span style="font-weight:600">${tdcg.toFixed(1)} ppm</span></div>
+        <div class="param-row"><span>Status</span><span style="font-weight:600">${t.label}</span></div>
+      </div>
+      <div class="tdcg-bar">${steps.map(s=>`<div class="tdcg-step ${s.cls}${t.cond===s.c?' active':''}"><div>${s.l}</div><div style="font-size:10px">${s.r}</div></div>`).join('')}</div>
+      ${actionBox(t.sev,TDCG_ACTIONS[t.cond])}
+    </div>`
+}
+
+const FM={'0,1,0':'Normal','0,0,0':'Partial Discharge (PD)','1,1,1':'Low Energy Discharge (D1)','2,1,2':'High Energy Discharge (D2)','0,2,0':'Thermal Fault T1 <300°C','0,2,1':'Thermal Fault T2 300–700°C','0,2,2':'Thermal Fault T3 >700°C'}
+function codeR(v,lo,mi){return v<lo?0:v<mi?1:2}
+
+function runDGA(){
+  // Validate all fields are either BDL or have a value
+  const errEl=document.getElementById('dga-error')
+  const incomplete=DGA_FIELDS.filter(id=>!BDL_STATE[id]&&gv(id)==='')
+  if(incomplete.length>0){
+    incomplete.forEach(id=>{document.getElementById(id)?.classList.add('error')})
+    errEl.textContent=`Please enter a value or mark as BDL for: ${incomplete.join(', ')}`
+    errEl.style.display='block'
+    return
+  }
+  errEl.style.display='none'
+  DGA_FIELDS.forEach(id=>document.getElementById(id)?.classList.remove('error'))
+
+  const h2d=getDGAValue('h2'),ch4d=getDGAValue('ch4'),c2h6d=getDGAValue('c2h6')
+  const c2h4d=getDGAValue('c2h4'),c2h2d=getDGAValue('c2h2'),cod=getDGAValue('co'),co2d=getDGAValue('co2')
+  const h2=h2d.val,ch4=ch4d.val,c2h6=c2h6d.val,c2h4=c2h4d.val,c2h2=c2h2d.val,co=cod.val,co2=co2d.val
+
+  const tdcg=h2+co+ch4+c2h6+c2h4+c2h2
+  const ao=c2h2>3,co2co=co>0?co2/co:0,ps=co2co>11&&co>100
+  renderTDCG(tdcg)
+
+  const gasBDL={h2:h2d.bdl,ch4:ch4d.bdl,c2h6:c2h6d.bdl,c2h4:c2h4d.bdl,c2h2:c2h2d.bdl,co:cod.bdl,co2:co2d.bdl}
+
+  if(tdcg<100&&c2h2<=2&&co<100&&!ps){
+    STATE.dga={fault:'Normal',sev:'NORMAL',action:'No action — continue routine DGA sampling',ps:false,ao:false,tdcg,co2co,gases:{h2,ch4,c2h6,c2h4,c2h2,co,co2},gasBDL}
+    saveState();updateDots()
+    renderDGA('Normal','NORMAL',tdcg,co2co,null,null,null,null,null,null,false,false)
+    return
+  }
+
+  const rv1=c2h4>0?c2h2/c2h4:null,rv2=h2>0?ch4/h2:null,rv3=c2h6>0?c2h4/c2h6:null
+  const r1=rv1!=null?codeR(rv1,0.1,3):null,r2=rv2!=null?codeR(rv2,0.1,1):null,r3=rv3!=null?codeR(rv3,1,3):null
+  const rf=(r1!=null&&r2!=null&&r3!=null)?(FM[`${r1},${r2},${r3}`]||'Unclassified — Manual Review Required'):null
+  let fault,sev
+  if(ao){fault='High Energy Discharge (D2)'+(ps?' + Paper Thermal Stress':'');sev='CRITICAL'}
+  else if(ps&&rf===null){fault='Thermal Fault — Paper Insulation';sev='CRITICAL'}
+  else if(ps&&rf!==null){fault=rf+' + Paper Thermal Stress';sev='CRITICAL'}
+  else if(rf==='Normal'){fault='Normal';sev='NORMAL'}
+  else if(rf){fault=rf;sev=fault.includes('T3')||fault.includes('High')?'SEVERE':fault.includes('T2')||fault.includes('T1')||fault.includes('D1')||fault.includes('PD')?'MODERATE':'NORMAL'}
+  else{fault='Unclassified — Manual Review Required';sev='MODERATE'}
+
+  const bk=fault.replace(' + Paper Thermal Stress','')
+  const action=DGA_FAULT_ACTIONS[bk]||DGA_FAULT_ACTIONS['Unclassified — Manual Review Required']
+  STATE.dga={fault,sev,action,ps,ao,tdcg,co2co,gases:{h2,ch4,c2h6,c2h4,c2h2,co,co2},gasBDL,rogers:{rv1,rv2,rv3,r1,r2,r3}}
+  saveState();updateDots()
+  renderDGA(fault,sev,tdcg,co2co,rv1,rv2,rv3,r1,r2,r3,ps,ao)
+}
+
+function renderDGA(fault,sev,tdcg,co2co,rv1,rv2,rv3,r1,r2,r3,ps,ao){
+  const cls=sev.toLowerCase(),fc=r1!=null?`${r1},${r2},${r3}`:'–,–,–'
+  const bk=fault.replace(' + Paper Thermal Stress','')
+  const action=DGA_FAULT_ACTIONS[bk]||DGA_FAULT_ACTIONS['Unclassified — Manual Review Required']
+  document.getElementById('dga-result').innerHTML=`
+    <div class="result-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600">Rogers Ratio Diagnosis</span>
+        <span class="badge ${cls}">${sev}</span>
+      </div>
+      <div class="grid-2">
+        <div class="param-row"><span>Fault Type</span><span style="font-size:13px;font-weight:600">${fault}</span></div>
+        <div class="param-row"><span>Rogers Code</span><span style="font-family:monospace;font-size:13px">${fc}</span></div>
+        <div class="param-row"><span>CO2/CO Ratio</span><span style="font-weight:600">${co2co>0?co2co.toFixed(2):'N/A'}</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="ratio-grid">
+        <div class="ratio-box"><div class="ratio-label">C2H2/C2H4</div><div class="ratio-val">${rv1!=null?rv1.toFixed(3):'N/A'}</div></div>
+        <div class="ratio-box"><div class="ratio-label">CH4/H2</div><div class="ratio-val">${rv2!=null?rv2.toFixed(3):'N/A'}</div></div>
+        <div class="ratio-box"><div class="ratio-label">C2H4/C2H6</div><div class="ratio-val">${rv3!=null?rv3.toFixed(3):'N/A'}</div></div>
+      </div>
+      ${ao?`<div class="alert-danger" style="margin-top:10px">⚠ Acetylene override: C2H2 > 3 ppm — high energy arcing indicated</div>`:''}
+      ${ps?`<div class="alert-warn" style="margin-top:8px">⚠ Paper thermal stress: CO2/CO > 11 AND CO > 100 ppm detected</div>`:''}
+      ${actionBox(cls,action)}
+    </div>`
+}
+
+function clearDGA(){
+  DGA_FIELDS.forEach(id=>{
+    BDL_STATE[id]=false
+    const inp=document.getElementById(id)
+    const btn=document.getElementById('bdl-'+id)
+    if(inp){inp.disabled=false;inp.value='';inp.classList.remove('bdl-active','error')}
+    if(btn){btn.classList.remove('active');btn.textContent='BDL'}
+  })
+  const errEl=document.getElementById('dga-error')
+  if(errEl)errEl.style.display='none'
+  const tdcgEl=document.getElementById('tdcg-result')
+  const dgaEl=document.getElementById('dga-result')
+  if(tdcgEl)tdcgEl.innerHTML=''
+  if(dgaEl)dgaEl.innerHTML=''
+  STATE.dga=null;STATE.tdcg=null;saveState();updateDots()
+}
+
+// ── FURANIC ──────────────────────────────────────────────────
+const FURANIC_ACTIONS={
+  'Normal':'Continue routine monitoring — retest in 2 years',
+  'Average degradation':'Increase monitoring — retest in 1 year',
+  'Significant degradation':'Plan replacement — retest in 6 months',
+  'Critical — end of life':'Immediate action required — plan transformer replacement',
+  'Elevated total furans — manual review required':'Retest immediately — investigate secondary compound spike'
+}
+
+function runFuranic(){
+  const fal=san('f2fal'),hmf=san('f5hmf'),acf=san('f2acf'),mef=san('f5mef'),fol=san('f2fol')
+  const anyEntered=[fal,hmf,acf,mef,fol].some(v=>v!=null)
+  if(!anyEntered){
+    document.getElementById('furanic-result').innerHTML=`<div class="alert-warn">No values entered. Enter at least one furanic compound value to run analysis.</div>`
+    return
+  }
+  const total=(fal||0)+(hmf||0)+(acf||0)+(mef||0)+(fol||0)
+  const fal2=fal||0
+  let health,dp,life,cls
+  // OR logic: either fal2 OR total alone is sufficient to trigger severity
+  // Worst-case first — critical if either threshold exceeded
+  if(fal2>=5.0||total>=10){health='Critical — end of life';dp='<200';life='<15%';cls='critical'}
+  else if(fal2>=1.0||total>=4){health='Significant degradation';dp='200–400';life='15–40%';cls='poor'}
+  else if(fal2>=0.1||total>=1){health='Average degradation';dp='400–800';life='40–75%';cls='fair'}
+  else{health='Normal';dp='>800';life='>75%';cls='normal'}
+
+  STATE.furanic={health,cls,dp,life,fal:fal2,total,hmf:hmf||0,acf:acf||0,mef:mef||0,fol:fol||0,action:FURANIC_ACTIONS[health],
+    falEntered:fal!=null,hmfEntered:hmf!=null,acfEntered:acf!=null,mefEntered:mef!=null,folEntered:fol!=null}
+  saveState();updateDots()
+
+  const ntFur=[fal==null?'2-FAL':null,hmf==null?'5-HMF':null,acf==null?'2-ACF':null,mef==null?'5-MEF':null,fol==null?'2-FOL':null].filter(Boolean)
+  const ntHTML=ntFur.length>0?`<div style="font-size:11px;color:#475569;margin-top:6px">Not tested: ${ntFur.join(', ')}</div>`:''
+
+  document.getElementById('furanic-result').innerHTML=`
+    <div class="result-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600">Paper Insulation Health</span>
+        <span class="badge ${cls}">${health}</span>
+      </div>
+      <div class="sep"></div>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="param-row"><span>Total Furans (entered)</span><span style="font-weight:600">${total.toFixed(2)} mg/kg</span></div>
+        <div class="param-row"><span>2-FAL (primary marker)</span><span style="font-weight:600">${fal!=null?fal.toFixed(2)+' mg/kg':'Not tested'}</span></div>
+        <div class="param-row"><span>Estimated DP</span><span style="font-weight:600">${dp}</span></div>
+        <div class="param-row"><span>Remaining Life</span><span style="font-weight:600">${life}</span></div>
+      </div>
+      ${ntHTML}
+      ${actionBox(cls,FURANIC_ACTIONS[health])}
+    </div>`
+}
+
+function clearFuranic(){
+  ['f2fal','f5hmf','f2acf','f5mef','f2fol'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  document.getElementById('furanic-result').innerHTML=''
+  STATE.furanic=null;saveState();updateDots()
+}
+
+// ── OPTIONAL TESTS ────────────────────────────────────────────
+const ISO_TABLE=[[1,0,1],[2,1,2],[3,2,4],[4,4,8],[5,8,16],[6,16,32],[7,32,64],[8,64,130],[9,130,250],[10,250,500],[11,500,1000],[12,1000,2000],[13,2000,4000],[14,4000,8000],[15,8000,16000],[16,16000,32000],[17,32000,64000],[18,64000,130000],[19,130000,250000],[20,250000,500000],[21,500000,1000000],[22,1000000,2000000],[23,2000000,4000000],[24,4000000,Infinity]]
+function getRC(c){c=Math.max(0,parseFloat(c)||0);if(c===0)return 0;for(const[rc,lo,hi]of ISO_TABLE){if(c>lo&&c<=hi)return rc}return 24}
+
+function runOptional(){
+  const p4=san('p4'),p6=san('p6'),p14=san('p14')
+  const dbds=san('dbds'),mirror=gv('mirror'),pcb=san('pcb')
+  const hasParticles=[p4,p6,p14].some(v=>v!=null)
+  const hasCS=dbds!=null||mirror!==''
+  const hasPCB=pcb!=null
+
+  let pcResult=null,csResult=null,pcbResult=null
+  let resultParts=[]
+
+  if(hasParticles){
+    const rc4=getRC(p4||0),rc6=getRC(p6||0),rc14=getRC(p14||0)
+    const code=`${rc4}/${rc6}/${rc14}`
+    let pcSev='Good'
+    if(rc6>18||rc14>15)pcSev='Poor'
+    else if(rc6>17||rc14>14)pcSev='Fair'
+    pcResult={code,rc4,rc6,rc14,sev:pcSev}
+    resultParts.push(`ISO 4406: ${code} (${pcSev})`)
+  }
+
+  if(hasCS){
+    const ml=mirror.toLowerCase()
+    let csSev='Good',csNote=''
+    if(ml==='fail'){csSev='Poor';csNote='Copper mirror test failed'}
+    else if(dbds!=null&&dbds>=50){csSev='Poor';csNote=`DBDS ${dbds} mg/kg — exceeds limit`}
+    else if(dbds!=null){csNote=`DBDS ${dbds.toFixed(1)} mg/kg — below limit`}
+    csResult={sev:csSev,note:csNote,mirrorFail:ml==='fail',dbds}
+  }
+
+  if(hasPCB){
+    let pcbSev='Good',pcbNote=''
+    if(pcb>50){pcbSev='Poor';pcbNote=`${pcb} mg/kg — contaminated`}
+    else if(pcb>=2){pcbSev='Fair';pcbNote=`${pcb} mg/kg — detectable`}
+    else{pcbNote='Not detected'}
+    pcbResult={sev:pcbSev,note:pcbNote,val:pcb}
+  }
+
+  if(!hasParticles&&!hasCS&&!hasPCB){
+    document.getElementById('optional-result').innerHTML=`<div class="alert-warn">No values entered. Enter at least one test value to run analysis.</div>`
+    return
+  }
+
+  const allSevs=[pcResult?.sev,csResult?.sev,pcbResult?.sev].filter(Boolean)
+  const overallSev=allSevs.includes('Poor')?'Poor':allSevs.includes('Fair')?'Fair':'Good'
+
+  STATE.optional={overall:overallSev,pcResult,csResult,pcbResult,hasParticles,hasCS,hasPCB}
+  saveState();updateDots()
+
+  document.getElementById('optional-result').innerHTML=`
+    <div class="result-card ${overallSev.toLowerCase()}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600">Optional Tests Summary</span>${badge(overallSev)}
+      </div>
+      <div class="sep"></div>
+      <div style="margin-top:12px">
+        ${hasParticles?`<div class="param-row" style="margin-bottom:6px"><span>ISO 4406 Particle Count</span><span style="display:flex;align-items:center;gap:8px"><span style="font-family:monospace;font-weight:700;font-size:15px">${pcResult.code}</span>${badge(pcResult.sev)}</span></div>`:'<div class="param-row" style="margin-bottom:6px;color:#475569"><span>Particle Count</span><span style="font-style:italic;font-size:12px">Not tested</span></div>'}
+        ${hasCS?`<div class="param-row" style="margin-bottom:6px"><span>Corrosive Sulfur</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px">${csResult.note}</span>${badge(csResult.sev)}</span></div>`:'<div class="param-row" style="margin-bottom:6px;color:#475569"><span>Corrosive Sulfur</span><span style="font-style:italic;font-size:12px">Not tested</span></div>'}
+        ${hasPCB?`<div class="param-row"><span>PCB Content</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px">${pcbResult.note}</span>${badge(pcbResult.sev)}</span></div>`:'<div class="param-row"><span>PCB Content</span><span style="font-style:italic;font-size:12px;color:#475569">Not tested</span></div>'}
+      </div>
+    </div>`
+}
+
+function clearOptional(){
+  ['p4','p6','p14','p21','p38','p70','dbds','pcb','pcb-lim'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  const m=document.getElementById('mirror');if(m)m.value=''
+  document.getElementById('optional-result').innerHTML=''
+  STATE.optional=null;saveState();updateDots()
+}
+
+// ── IS 335 ────────────────────────────────────────────────────
+function clsBDVn(v){return v>=60?'Pass':v>=30?'Marginal':'Fail'}
+function clsWn(v){return v<=30?'Pass':v<=50?'Marginal':'Fail'}
+function clsAn(v){return v<=0.03?'Pass':v<=0.05?'Marginal':'Fail'}
+function clsTn(v){return v<=0.002?'Pass':v<=0.005?'Marginal':'Fail'}
+function clsRn(v){return v>=35?'Pass':v>=10?'Marginal':'Fail'}
+function clsIn(v){return v>=40?'Pass':v>=35?'Marginal':'Fail'}
+function clsFn(v){return v>=140?'Pass':'Fail'}
+function clsPn(v){return v<=-6?'Pass':v<=0?'Marginal':'Fail'}
+function clsVn(v){return v<=12?'Pass':v<=15?'Marginal':'Fail'}
+function clsAp(s){return(s.includes('hazy')||s.includes('cloudy'))?'Fail':'Pass'}
+function overallN(r){if(r.includes('Fail'))return'Fail';if(r.includes('Marginal'))return'Marginal';return'Pass'}
+const N_ACTIONS={Pass:'Oil accepted for commissioning — proceed with transformer filling',Marginal:'Borderline — re-test after processing, consult engineer before commissioning',Fail:'Oil rejected — do not commission. Address all failed parameters before re-testing'}
+
+function analyzeNewOil(){
+  const bdv=san('n-bdv'),tand=gv('n-tand')?parseFloat(gv('n-tand')):null
+  const res=san('n-res'),acid=san('n-acid'),water=san('n-water'),ift=san('n-ift')
+  const fp=san('n-fp'),pour=gv('n-pour')?parseFloat(gv('n-pour')):null
+  const visc=san('n-visc'),appear=gs('n-appear')
+
+  const params=[
+    {name:'BDV',val:bdv!=null?`${bdv} kV`:null,cls:bdv!=null?clsBDVn(bdv):null,limit:'≥60 kV'},
+    {name:'Tan Delta',val:tand!=null?`${tand}`:null,cls:tand!=null?clsTn(tand):null,limit:'≤0.002'},
+    {name:'Resistivity',val:res!=null?`${res} GΩ·m`:null,cls:res!=null?clsRn(res):null,limit:'≥35 GΩ·m'},
+    {name:'Acidity',val:acid!=null?`${acid} mgKOH/g`:null,cls:acid!=null?clsAn(acid):null,limit:'≤0.03 mgKOH/g'},
+    {name:'Water',val:water!=null?`${water} ppm`:null,cls:water!=null?clsWn(water):null,limit:'≤30 ppm'},
+    {name:'IFT at 25°C',val:ift!=null?`${ift} mN/m`:null,cls:ift!=null?clsIn(ift):null,limit:'≥40 mN/m'},
+    {name:'Flash Point',val:fp!=null?`${fp} °C`:null,cls:fp!=null?clsFn(fp):null,limit:'≥140°C'},
+    {name:'Pour Point',val:pour!=null?`${pour}°C`:null,cls:pour!=null?clsPn(pour):null,limit:'≤−6°C'},
+    {name:'Viscosity',val:visc!=null?`${visc} cSt`:null,cls:visc!=null?clsVn(visc):null,limit:'≤12 cSt'},
+    {name:'Appearance',val:appear||null,cls:appear?clsAp(appear):null,limit:'Clear and bright'},
+  ]
+
+  const tested=params.filter(p=>p.cls!=null)
+  if(tested.length===0){
+    document.getElementById('newoil-result').innerHTML=`<div class="alert-warn">No values entered. Enter at least one parameter to run analysis.</div>`
+    return
+  }
+
+  const overall=overallN(tested.map(p=>p.cls)),cls=overall.toLowerCase()
+  const flagged=tested.filter(p=>p.cls!=='Pass')
+  STATE.newoil={overall,cls,params,tested,flagged,action:N_ACTIONS[overall]}
+  saveState();updateDots()
+
+  const flaggedHTML=flagged.length>0?`<div class="sep"></div><div style="font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px">Failed / Marginal</div>${flagged.map(p=>`<div class="flagged-row"><span>${p.name} (${p.val})</span><span style="display:flex;align-items:center;gap:8px">${badge(p.cls)}<span style="font-size:11px;color:#64748b">Limit: ${p.limit}</span></span></div>`).join('')}`:''
+
+  document.getElementById('newoil-result').innerHTML=`
+    <div class="result-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:600">IS 335 Acceptance Result</span>${badge(overall)}
+      </div>
+      <div class="grid-2">
+        ${params.map(p=>`<div class="param-row"><span>${p.name}${p.val?` (${p.val})`:''}</span>${p.cls?badge(p.cls):`<span style="color:#475569;font-size:11px">Not tested</span>`}</div>`).join('')}
+      </div>
+      ${flaggedHTML}
+      ${actionBox(cls,N_ACTIONS[overall])}
+    </div>`
+}
+
+function clearNewOil(){
+  ['n-bdv','n-tand','n-res','n-acid','n-water','n-ift','n-fp','n-pour','n-visc','n-appear'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  document.getElementById('newoil-result').innerHTML=''
+  STATE.newoil=null;saveState();updateDots()
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────
+function sevRank(s){
+  const r={critical:4,severe:4,poor:4,fail:4,CRITICAL:4,SEVERE:4,moderate:2,fair:2,marginal:2,MODERATE:2,normal:0,good:0,pass:0,NORMAL:0}
+  return r[s?.toLowerCase()]??0
+}
+
+function buildSummary(){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'))
+  document.getElementById('nav-summary')?.classList.add('active')
+
+  const panelsRun=[STATE.is1866,STATE.dga,STATE.furanic,STATE.optional,STATE.newoil].filter(Boolean).length
+  const noPanels=panelsRun===0
+
+  // Collect severities only from actual analyzed panels
+  const sevs=[]
+  if(STATE.is1866?.overall)sevs.push(STATE.is1866.cls)
+  if(STATE.dga?.sev)sevs.push(STATE.dga.sev.toLowerCase())
+  if(STATE.tdcg?.sev)sevs.push(STATE.tdcg.sev)
+  if(STATE.furanic?.cls)sevs.push(STATE.furanic.cls)
+  if(STATE.optional?.overall)sevs.push(STATE.optional.overall.toLowerCase())
+  if(STATE.newoil?.cls)sevs.push(STATE.newoil.cls)
+
+  let overallCls='moderate',overallLabel='No panels analyzed',overallSub='Complete at least one analysis panel before generating a report'
+  if(!noPanels){
+    const mx=Math.max(...sevs.map(sevRank))
+    if(mx>=4){overallCls='critical';overallLabel='Critical — Immediate Action Required';overallSub='One or more parameters indicate a critical fault condition'}
+    else if(mx>=2){overallCls='moderate';overallLabel='Warning — Action Required';overallSub='One or more parameters indicate degraded condition'}
+    else{overallCls='normal';overallLabel='Satisfactory';overallSub='All tested parameters within acceptable limits'}
+  }
+
+  const mk=r=>`<div class="summary-row"><div><div class="s-label">${r.label}</div><div class="s-value ${r.v?'':'not-run'}">${r.v||'Not analyzed'}</div></div>${r.b?badge(r.b):''}</div>`
+  const rows=[
+    mk({label:'In-Service Oil — IS 1866',v:STATE.is1866?.overall,b:STATE.is1866?.overall}),
+    mk({label:'DGA Fault — IEC 60599',v:STATE.dga?.fault,b:STATE.dga?.sev}),
+    mk({label:'TDCG Condition',v:STATE.tdcg?`Condition ${STATE.tdcg.cond} — ${STATE.tdcg.label} (${STATE.tdcg.tdcg.toFixed(0)} ppm)`:null,b:STATE.tdcg?.sev}),
+    mk({label:'Paper Insulation — IEC 61198',v:STATE.furanic?.health,b:STATE.furanic?.cls}),
+    mk({label:'Optional Tests',v:STATE.optional?`ISO ${STATE.optional.pcResult?.code||'—'} | CS: ${STATE.optional.csResult?STATE.optional.csResult.sev:'NT'} | PCB: ${STATE.optional.pcbResult?STATE.optional.pcbResult.sev:'NT'}`:null,b:STATE.optional?.overall}),
+    mk({label:'New Oil — IS 335',v:STATE.newoil?`Acceptance: ${STATE.newoil.overall}`:null,b:STATE.newoil?.overall}),
+  ].join('')
+
+  // Priority actions — only from analyzed panels
+  const actions=[]
+  if(noPanels){
+    actions.push({sev:'moderate',text:'No panels analyzed yet — please complete at least one test section before generating a report',rank:2})
+  }else{
+    if(STATE.dga&&STATE.is1866){
+      const isSev=['T3','T2','D2','High Energy'].some(x=>STATE.dga.fault.includes(x))
+      if(isSev&&STATE.is1866.flashPointVal<=140)actions.push({sev:'critical',text:'⚠ SAFETY OVERRIDE: Active thermal/arcing fault with flash point ≤140°C. Hot filtration FORBIDDEN.',rank:5})
+    }
+    if(STATE.dga&&STATE.dga.sev!=='NORMAL')actions.push({sev:STATE.dga.sev.toLowerCase(),text:`DGA: ${STATE.dga.action}`,rank:sevRank(STATE.dga.sev)})
+    if(STATE.tdcg&&STATE.tdcg.cond>1)actions.push({sev:STATE.tdcg.sev,text:`TDCG: ${STATE.tdcg.action}`,rank:sevRank(STATE.tdcg.sev)})
+    if(STATE.is1866&&STATE.is1866.overall&&STATE.is1866.overall!=='Good')actions.push({sev:STATE.is1866.cls,text:`IS 1866: ${STATE.is1866.action}`,rank:sevRank(STATE.is1866.cls)})
+    if(STATE.furanic&&STATE.furanic.cls!=='normal')actions.push({sev:STATE.furanic.cls,text:`Furanic: ${STATE.furanic.action}`,rank:sevRank(STATE.furanic.cls)})
+    if(STATE.newoil&&STATE.newoil.cls!=='pass')actions.push({sev:STATE.newoil.cls,text:`IS 335: ${STATE.newoil.action}`,rank:sevRank(STATE.newoil.cls)})
+    if(actions.length===0)actions.push({sev:'normal',text:'No priority actions — all tested parameters satisfactory',rank:0})
+  }
+  actions.sort((a,b)=>b.rank-a.rank)
+
+  const actHTML=actions.map((a,i)=>`<div class="priority-item ${a.sev}-item"><span class="priority-num">${noPanels?'—':i+1}</span><span>${a.text}</span></div>`).join('')
+
+  const s=STATE.sample||{}
+  const sInfo=(s.id||s.customer)?`<div style="font-size:13px;color:#64748b;margin-bottom:1.5rem;display:flex;gap:20px;flex-wrap:wrap">${s.id?`<span><b style="color:#94a3b8">Sample:</b> ${s.id}</span>`:''}${s.customer?`<span><b style="color:#94a3b8">Customer:</b> ${s.customer}</span>`:''}${s.location?`<span><b style="color:#94a3b8">Location:</b> ${s.location}</span>`:''}</div>`:''
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="panel-title">Diagnostic Summary & Report</div>
+    <div class="panel-sub">Consolidated results across all analyzed panels</div>
+    ${sInfo}
+    <div class="overall-verdict ${overallCls}">
+      <div class="verdict-label">Overall Transformer Condition</div>
+      <div class="verdict-text">${overallLabel}</div>
+      <div class="verdict-sub">${overallSub}</div>
+    </div>
+    <div class="card"><div class="card-title">Panel Results</div>${rows}</div>
+    <div class="card"><div class="card-title">Priority Actions</div>${actHTML}</div>
+    <div class="report-section">
+      <h3>Generate Diagnostic Report</h3>
+      <p>${noPanels?'Complete at least one analysis panel before generating a report.':'Exports a professional PDF report based on all analyzed panels.'}</p>
+      <button class="btn btn-report" id="pdf-btn" onclick="generatePDF()" ${noPanels?'disabled title="Complete at least one analysis panel before generating a report"':''}>
+        ${noPanels?'⬇ Download PDF Report (complete a panel first)':'⬇ Download PDF Report'}
+      </button>
+    </div>`
+}
+
+// ── PDF GENERATOR ─────────────────────────────────────────────
+function generatePDF(){
+  const btn=document.getElementById('pdf-btn')
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Generating...'}
+  setTimeout(()=>{try{_doGeneratePDF()}catch(e){console.error(e);alert('PDF generation failed: '+e.message)}finally{if(btn){btn.disabled=false;btn.innerHTML='⬇ Download PDF Report'}}},100)
+}
+
+function _doGeneratePDF(){
+  const {jsPDF}=window.jspdf
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'})
+  const W=210,M=15,CW=W-2*M
+  let y=M
+  const TEAL=[29,158,117],DARK=[17,24,39],GRAY=[107,114,128]
+  const GBG=[220,252,231],GFG=[22,101,52]
+  const YBG=[254,249,195],YFG=[133,77,14]
+  const RBG=[254,226,226],RFG=[153,27,27]
+  const LIGHT=[243,244,246]
+
+  function sc(s){
+    s=(s||'').toLowerCase()
+    if(['good','pass','normal'].includes(s))return{bg:GBG,fg:GFG}
+    if(['fair','marginal','moderate'].includes(s))return{bg:YBG,fg:YFG}
+    return{bg:RBG,fg:RFG}
+  }
+  function sf(rgb){doc.setFillColor(...rgb)}
+  function st(rgb){doc.setTextColor(...rgb)}
+  function fnt(style,size){doc.setFontSize(size);doc.setFont('helvetica',style)}
+  function chk(n=20){if(y+n>282){doc.addPage();y=M}}
+
+  // Header
+  sf(TEAL);doc.roundedRect(M,y,CW,18,2,2,'F')
+  fnt('bold',14);st([255,255,255]);doc.text('TRANSFORMER OIL ANALYSIS REPORT',W/2,y+7,{align:'center'})
+  fnt('normal',8);doc.text('Multi-Standard Diagnostic Report  IS 1866  IEC 60599  IEC 61198  IS 335',W/2,y+13,{align:'center'})
+  y+=22
+
+  // Meta
+  const s=STATE.sample||{},now=new Date().toLocaleDateString('en-IN')
+  const mL=[['Report Date:',now],['Sample ID:',s.id||'—'],['Date of Testing:',s.testDate||'—'],['Date of Receipt:',s.receiptDate||'—']]
+  const mR=[['Customer:',s.customer||'—'],['Location:',(s.location||'—').substring(0,38)],['Transformer:',`${s.make||'—'} | ${s.voltage||'—'}`],['Tag No.:',s.tag||'—']]
+
+  const sevs2=[]
+  if(STATE.is1866?.overall)sevs2.push(STATE.is1866.cls)
+  if(STATE.dga?.sev)sevs2.push(STATE.dga.sev.toLowerCase())
+  if(STATE.furanic?.cls)sevs2.push(STATE.furanic.cls)
+  const mx=sevs2.length>0?Math.max(...sevs2.map(sevRank)):0
+  const vLabel=mx>=4?'CRITICAL — Immediate Action':mx>=2?'WARNING — Action Required':'SATISFACTORY'
+  const vc=sc(mx>=4?'poor':mx>=2?'fair':'good')
+
+  const metaY=y
+  mL.forEach(([l,v])=>{fnt('bold',7.5);st(GRAY);doc.text(l,M,y+4);fnt('normal',8.5);st(DARK);doc.text(String(v),M+28,y+4);y+=6})
+  y=metaY
+  mR.forEach(([l,v])=>{fnt('bold',7.5);st(GRAY);doc.text(l,M+75,y+4);fnt('normal',8.5);st(DARK);doc.text(String(v),M+97,y+4);y+=6})
+  sf(vc.bg);doc.roundedRect(M+140,metaY-2,50,28,2,2,'F')
+  fnt('bold',7);st(vc.fg);doc.text('OVERALL CONDITION',M+165,metaY+5,{align:'center'})
+  fnt('bold',9);doc.text(vLabel,M+165,metaY+14,{align:'center',maxWidth:46})
+  y=metaY+30
+  sf(LIGHT);doc.rect(M,y,CW,8,'F');fnt('normal',8);st(DARK)
+  doc.text(`Sampling Point: ${s.samplingPt||'—'}  |  Generated: ${now}  |  App v11`,M+3,y+5.5)
+  y+=13
+
+  // IS 1866
+  if(STATE.is1866&&STATE.is1866.testedParams?.length>0){
+    chk(60);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 1 — In-Service Oil Quality — IS 1866:2017',M+3,y+5);y+=10
+    doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+      head:[['#','Parameter','Method','Good','Fair','Poor','Obtained Value','Result']],
+      body:STATE.is1866.params.map((p,i)=>[
+        String(i+1),p.name,'IS 1866:2017',
+        p.spec?.split(' | ')[0]||'—',p.spec?.split(' | ')[1]||'—',p.spec?.split(' | ')[2]||'—',
+        p.val||'Not tested',p.cls||'NT'
+      ]),
+      styles:{fontSize:7.5,cellPadding:2.5,valign:'middle'},
+      headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold',fontSize:7.5},
+      columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:36},2:{cellWidth:20},3:{cellWidth:16,halign:'center'},4:{cellWidth:14,halign:'center'},5:{cellWidth:16,halign:'center'},6:{cellWidth:24,halign:'center',fontStyle:'bold'},7:{cellWidth:22,halign:'center'}},
+      alternateRowStyles:{fillColor:LIGHT},
+      didDrawCell:(d)=>{
+        if(d.column.index===7&&d.section==='body'){
+          const cls=d.row.raw[7]
+          if(cls==='NT'){sf([241,245,249]);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('normal',7);st(GRAY);doc.text('—',d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+          else{const c=sc(cls);sf(c.bg);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('bold',7);st(c.fg);doc.text(cls,d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+        }
+      }
+    })
+    y=doc.lastAutoTable.finalY+2
+    const oc=sc(STATE.is1866.overall||'good');sf(oc.bg);doc.rect(M,y,CW,9,'F');fnt('bold',8);st(oc.fg)
+    doc.text(`IS 1866 Overall: ${STATE.is1866.overall||'—'}  ->  ${STATE.is1866.action||'—'}`,M+3,y+6);y+=13
+  }
+
+  // DGA
+  if(STATE.dga){
+    chk(70);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 2 — Dissolved Gas Analysis — IEC 60599:2015',M+3,y+5);y+=10
+    const g=STATE.dga.gases||{},bdl=STATE.dga.gasBDL||{}
+    const gasVal=(key)=>bdl[key]?'BDL':(g[key]!=null?`${g[key]} ppm`:'—')
+    doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+      head:[['#','Gas','Obtained Value']],
+      body:[['1','Hydrogen (H2)',gasVal('h2')],['2','Carbon Monoxide (CO)',gasVal('co')],['3','Methane (CH4)',gasVal('ch4')],['4','Ethylene (C2H4)',gasVal('c2h4')],['5','Ethane (C2H6)',gasVal('c2h6')],['6','Acetylene (C2H2)',gasVal('c2h2')],['7','Carbon Dioxide (CO2)',gasVal('co2')]],
+      styles:{fontSize:8,cellPadding:2.5},headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:10,halign:'center'},1:{cellWidth:100},2:{cellWidth:CW-110,halign:'center',fontStyle:'bold'}},
+      alternateRowStyles:{fillColor:LIGHT}
+    })
+    y=doc.lastAutoTable.finalY+3
+    const d=STATE.dga,dc=sc(d.sev.toLowerCase())
+    sf(dc.bg);doc.rect(M,y,CW,22,'F');fnt('bold',7.5);st(dc.fg)
+    doc.text('TDCG:',M+3,y+5);fnt('normal',8);doc.text(`${d.tdcg?.toFixed(1)||'—'} ppm`,M+18,y+5)
+    fnt('bold',7.5);doc.text('TDCG Condition:',M+55,y+5);fnt('normal',8)
+    doc.text(STATE.tdcg?`Condition ${STATE.tdcg.cond} - ${STATE.tdcg.label} (hydrocarbon gases only)`:'-',M+90,y+5)
+    fnt('bold',7.5);doc.text('CO2/CO:',M+3,y+11);fnt('normal',8);doc.text(d.co2co>0?d.co2co.toFixed(2):'N/A',M+22,y+11)
+    fnt('bold',7.5);doc.text('Rogers Code:',M+55,y+11);fnt('normal',8)
+    doc.text(d.rogers?`${d.rogers.r1??'-'},${d.rogers.r2??'-'},${d.rogers.r3??'-'}`:'—,—,—',M+85,y+11)
+    fnt('bold',8);doc.text('Fault Type:',M+3,y+17);fnt('bold',8.5);doc.text(d.fault,M+22,y+17)
+    fnt('bold',7.5);doc.text('Severity:',M+130,y+17);fnt('bold',9);doc.text(d.sev,M+148,y+17);y+=25
+    if(d.ps){sf([254,243,199]);doc.rect(M,y,CW,9,'F');fnt('bold',8);st([146,64,14]);doc.text('WARNING: Paper thermal stress — CO2/CO > 11 AND CO > 100 ppm. All hydrocarbons BDL. Pure cellulose degradation pattern.',M+3,y+6,{maxWidth:CW-6});y+=12}
+    sf(dc.bg);doc.rect(M,y,CW,8,'F');fnt('bold',7.5);st(dc.fg);doc.text(`DGA Action: ${d.action}`,M+3,y+5.5);y+=12
+  }
+
+  // Furanic
+  if(STATE.furanic){
+    chk(40);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 3 — Furanic Compound Analysis — IEC 61198:1993',M+3,y+5);y+=10
+    const f=STATE.furanic
+    const furVal=(key,entered)=>entered?`${f[key].toFixed(2)}`:'Not tested'
+    doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+      head:[['#','Furanic Compound','Obtained Value (mg/kg)']],
+      body:[
+        ['1','5-Hydroxymethylfurfural (5-HMF)',f.hmfEntered?f.hmf.toFixed(2):'Not tested'],
+        ['2','2-Furfurylalcohol (2-FOL)',f.folEntered?f.fol.toFixed(2):'Not tested'],
+        ['3','2-Furfural (2-FAL) — Primary DP Marker',f.falEntered?f.fal.toFixed(2):'Not tested'],
+        ['4','2-Acetyl furan (2-ACF)',f.acfEntered?f.acf.toFixed(2):'Not tested'],
+        ['5','5-Methyl-2-furfural (5-MEF)',f.mefEntered?f.mef.toFixed(2):'Not tested'],
+        ['6','Total Furan Content (entered fields only)',f.total.toFixed(2)],
+      ],
+      styles:{fontSize:8,cellPadding:2.5},headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:10,halign:'center'},1:{cellWidth:115},2:{cellWidth:CW-125,halign:'center',fontStyle:'bold'}},
+      alternateRowStyles:{fillColor:LIGHT}
+    })
+    y=doc.lastAutoTable.finalY+3
+    const fc=sc(f.cls);sf(fc.bg);doc.rect(M,y,CW,14,'F');fnt('bold',7.5);st(fc.fg)
+    doc.text(`Paper Health: ${f.health}  |  Estimated DP: ${f.dp}  |  Remaining Life: ${f.life}`,M+3,y+5)
+    doc.text(`Action: ${f.action}`,M+3,y+11);y+=18
+  }
+
+  // Optional Tests
+  if(STATE.optional){
+    chk(35);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 4 — Optional Tests (ISO 4406 / IEC 62535 / PCB)',M+3,y+5);y+=10
+    const ot=STATE.optional
+    const optRows=[]
+    if(ot.pcResult)optRows.push(['Particle Count — ISO 4406',`Code: ${ot.pcResult.code}  (RC >6: ${ot.pcResult.rc6} / >14: ${ot.pcResult.rc14})`,ot.pcResult.sev])
+    else optRows.push(['Particle Count — ISO 4406','Not tested','NT'])
+    if(ot.csResult)optRows.push(['Corrosive Sulfur — IEC 62535',ot.csResult.note||'—',ot.csResult.sev])
+    else optRows.push(['Corrosive Sulfur — IEC 62535','Not tested','NT'])
+    if(ot.pcbResult)optRows.push(['PCB Content',ot.pcbResult.note||'—',ot.pcbResult.sev])
+    else optRows.push(['PCB Content','Not tested','NT'])
+
+    doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+      head:[['Test','Result','Classification']],
+      body:optRows,
+      styles:{fontSize:8,cellPadding:3},headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:55},1:{cellWidth:CW-85},2:{cellWidth:25,halign:'center'}},
+      alternateRowStyles:{fillColor:LIGHT},
+      didDrawCell:(d)=>{
+        if(d.column.index===2&&d.section==='body'){
+          const cls=d.row.raw[2]
+          if(cls==='NT'){sf([241,245,249]);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('normal',7);st(GRAY);doc.text('—',d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+          else{const c=sc(cls);sf(c.bg);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('bold',7.5);st(c.fg);doc.text(cls,d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+        }
+      }
+    })
+    y=doc.lastAutoTable.finalY+6
+  }
+
+  // IS 335
+  if(STATE.newoil&&STATE.newoil.tested?.length>0){
+    chk(40);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 5 — New Oil Acceptance — IS 335:2018',M+3,y+5);y+=10
+    doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+      head:[['#','Parameter','Obtained Value','Limit','Result']],
+      body:STATE.newoil.params.map((p,i)=>[String(i+1),p.name,p.val||'Not tested',p.limit,p.cls||'NT']),
+      styles:{fontSize:8,cellPadding:2.5,valign:'middle'},
+      headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:58},2:{cellWidth:35,halign:'center',fontStyle:'bold'},3:{cellWidth:35,halign:'center'},4:{cellWidth:20,halign:'center'}},
+      alternateRowStyles:{fillColor:LIGHT},
+      didDrawCell:(d)=>{
+        if(d.column.index===4&&d.section==='body'){
+          const cls=d.row.raw[4]
+          if(cls==='NT'){sf([241,245,249]);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('normal',7);st(GRAY);doc.text('—',d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+          else{const c=sc(cls);sf(c.bg);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('bold',7.5);st(c.fg);doc.text(cls,d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})}
+        }
+      }
+    })
+    y=doc.lastAutoTable.finalY+3
+    const nc=sc(STATE.newoil.cls);sf(nc.bg);doc.rect(M,y,CW,9,'F');fnt('bold',8);st(nc.fg)
+    doc.text(`IS 335 Overall: ${STATE.newoil.overall}  ->  ${STATE.newoil.action}`,M+3,y+6);y+=13
+  }
+
+  // Priority Actions
+  chk(30);sf(DARK);doc.rect(M,y,CW,7,'F');fnt('bold',9);st([255,255,255]);doc.text('Section 6 — Priority Action Summary',M+3,y+5);y+=10
+  const allA=[]
+  if(STATE.dga&&STATE.dga.sev!=='NORMAL')allA.push({sev:STATE.dga.sev,text:`DGA: ${STATE.dga.action}`,rank:sevRank(STATE.dga.sev)})
+  if(STATE.tdcg&&STATE.tdcg.cond>1)allA.push({sev:STATE.tdcg.sev.toUpperCase(),text:`TDCG: ${STATE.tdcg.action}`,rank:sevRank(STATE.tdcg.sev)})
+  if(STATE.is1866?.overall&&STATE.is1866.overall!=='Good')allA.push({sev:STATE.is1866.overall.toUpperCase(),text:`IS 1866: ${STATE.is1866.action}`,rank:sevRank(STATE.is1866.cls)})
+  if(STATE.furanic&&STATE.furanic.cls!=='normal')allA.push({sev:STATE.furanic.cls.toUpperCase(),text:`Furanic: ${STATE.furanic.action}`,rank:sevRank(STATE.furanic.cls)})
+  if(allA.length===0)allA.push({sev:'NORMAL',text:'No priority actions — all tested parameters satisfactory',rank:0})
+  allA.sort((a,b)=>b.rank-a.rank)
+
+  doc.autoTable({startY:y,margin:{left:M,right:M},tableWidth:'auto',
+    head:[['Priority','Severity','Recommended Action']],
+    body:allA.map((a,i)=>[String(i+1),a.sev,a.text]),
+    styles:{fontSize:8,cellPadding:3},headStyles:{fillColor:DARK,textColor:[255,255,255],fontStyle:'bold'},
+    columnStyles:{0:{cellWidth:18,halign:'center',fontStyle:'bold'},1:{cellWidth:28,halign:'center'},2:{cellWidth:CW-46}},
+    alternateRowStyles:{fillColor:LIGHT},
+    didDrawCell:(d)=>{
+      if(d.column.index===1&&d.section==='body'){
+        const c=sc(d.row.raw[1]);sf(c.bg);doc.rect(d.cell.x+1,d.cell.y+1,d.cell.width-2,d.cell.height-2,'F');fnt('bold',7.5);st(c.fg);doc.text(d.row.raw[1],d.cell.x+d.cell.width/2,d.cell.y+d.cell.height/2+1,{align:'center'})
+      }
+    }
+  })
+  y=doc.lastAutoTable.finalY+6
+
+  // Footer
+  chk(18);doc.setDrawColor(...TEAL);doc.setLineWidth(0.5);doc.line(M,y,M+CW,y);y+=4
+  fnt('normal',7);st(GRAY)
+  const notes=[
+    '1. Diagnostic interpretation based on IS 1866:2017, IEC 60599:2015, IEC 61198:1993, IS 335:2018.',
+    '2. Paper thermal stress uses CO2/CO ratio per IEC 60599. TDCG screens hydrocarbon gases only.',
+    '3. BDL = Below Detection Level. Not tested = field left blank by operator.',
+    '4. Generated by Transformer Oil Analysis App v11  |  YOUR-APP-URL.vercel.app'
+  ]
+  notes.forEach(n=>{doc.text(n,M,y);y+=4})
+
+  const sid=STATE.sample?.id||'TRF',dt=new Date().toISOString().slice(0,10)
+  doc.save(`Transformer-Oil-Report-${sid}-${dt}.pdf`)
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadState()
+updateDots()
+showPanel('sample',true)
+</script>
+</body>
+</html>
