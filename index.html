@@ -1,4 +1,4 @@
-
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -983,8 +983,9 @@ function _doGeneratePDF(){
     doc.text(d.rogers?`${d.rogers.r1??'-'},${d.rogers.r2??'-'},${d.rogers.r3??'-'}`:'—,—,—',M+85,y+11)
     fnt('bold',8);doc.text('Fault Type:',M+3,y+17);fnt('normal',8);doc.text(d.fault,M+26,y+17,{maxWidth:95})
     fnt('bold',7.5);doc.text('Severity:',M+130,y+17);fnt('bold',9);doc.text(d.sev,M+148,y+17);y+=50
-    if(d.ps){sf([254,243,199]);doc.rect(M,y,CW,9,'F');fnt('bold',8);st([146,64,14]);doc.text('WARNING: Paper thermal stress — CO2/CO > 11 AND CO > 100 ppm. All hydrocarbons BDL. Pure cellulose degradation pattern.',M+3,y+6,{maxWidth:CW-6});y+=18}
-    sf(dc.bg);doc.rect(M,y,CW,8,'F');fnt('bold',7.5);st(dc.fg);doc.text(`DGA Action: ${d.action}`,M+3,y+5.5);y+=12
+    doc.addPage();y=M
+    if(d.ps){sf([254,243,199]);doc.rect(M,y,CW,14,'F');fnt('bold',8);st([146,64,14]);doc.text('WARNING: Paper thermal stress — CO2/CO > 11 AND CO > 100 ppm. All hydrocarbons BDL. Pure cellulose degradation pattern.',M+3,y+8,{maxWidth:CW-6});y+=22}
+    sf(dc.bg);doc.rect(M,y,CW,8,'F');fnt('bold',7.5);st(dc.fg);doc.text(`DGA Action: ${d.action}`,M+3,y+5.5);y+=20
   }
  
   // Furanic
